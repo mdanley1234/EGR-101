@@ -59,7 +59,7 @@
     "ssh_key": ""
   },
   "meta": {
-    "filename": "EGR 101.kicad_prl",
+    "filename": "EGR101-Chamber.kicad_prl",
     "version": 5
   },
   "net_inspector_panel": {
@@ -97,7 +97,7 @@
       103,
       74,
       103,
-      10
+      103
     ],
     "custom_group_rules": [],
     "expanded_rows": [],
