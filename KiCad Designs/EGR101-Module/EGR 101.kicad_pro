@@ -189,7 +189,7 @@
       "track_widths": [
         0.0,
         0.2,
-        0.3,
+        0.35,
         0.5
       ],
       "tuning_pattern_settings": {
@@ -503,7 +503,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "production/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",
