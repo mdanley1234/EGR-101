@@ -311,7 +311,7 @@ void computeRobustBounds(float &outMin, float &outMax) {
 
   float med = computeMedian(tmp, n);
   float mad = computeMAD(tmp, n, med);
-  // scale MAD -> approximate std: sigma ≈ 1.4826*MAD
+  // scale MAD
   float sigma = 1.4826 * mad;
   float threshold = 3.0 * sigma; // 3-sigma equivalent in robust terms
   // if sigma==0 (all values identical) accept all
