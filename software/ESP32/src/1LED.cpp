@@ -1,8 +1,14 @@
 #include <Wire.h>
 #include "Adafruit_VEML7700.h"
+
+#define SDA1 9   // First sensor I2C pins
+#define SCL1 8
+#define SDA2 4   // Second sensor I2C pins  
+#define SCL2 5
+
+
 // 5 minute sliding window moving bound calibration
 // outlier removal via median+MAD
-
 //modular filters: 
 //Simple Moving Average,
 //Exponential Moving Average, 
@@ -12,8 +18,8 @@ Adafruit_VEML7700 veml = Adafruit_VEML7700();
 
 // === CONFIG ===
 const int LED_PIN = 5;                // PWM-capable pin
-const unsigned long SAMPLE_MS = 200;  // sample interval -> 200ms => 5Hz
-const int WINDOW_SIZE = 1500;         // 5 minutes @ 200ms -> 1500 samples
+const unsigned long SAMPLE_MS = 500;  // sample interval -> 500ms => 5Hz
+const int WINDOW_SIZE = 600;         // 5 minutes @ 500ms -> 600 samples
 
 // Initial manual bounds (can be tuned before the system converges)
 float minLux = 0.0;
@@ -352,10 +358,32 @@ float mapFloat(float x, float inMin, float inMax, float outMin, float outMax) {
   return outMin + t * (outMax - outMin);
 }
 
+//helper function to read sensor lux with adjustable addressed I2C pins
+// Read lux from a specific sensor by switching I2C pins
+float readSensorLux(int sda, int scl) {
+  Wire.begin(sda, scl);
+  delay(10);  // Small delay for I2C bus to stabilize
+  
+  // Reinitialize the sensor on the new bus
+  if (!veml.begin()) {
+    Serial.print("Warning: Sensor not found on SDA=");
+    Serial.print(sda);
+    Serial.print(" SCL=");
+    Serial.println(scl);
+    return 0.0;  // Return 0 if sensor not found
+  }
+  
+  // Reconfigure sensor settings (they may reset after begin())
+  veml.setGain(VEML7700_GAIN_1);
+  veml.setIntegrationTime(VEML7700_IT_100MS);
+  
+  float lux = veml.readLux();
+  return lux;
+}
+
 void setup() {
   Serial.begin(115200);
-  Wire.begin(9, 8);  // SDA=9, SCL=8 for ESP32-C3
-
+  Wire.begin(SDA1, SCL1);  // Start with first sensor
   if (!veml.begin()) {
     Serial.println("VEML7700 not found");
     while (1);
@@ -377,10 +405,12 @@ void loop() {
   if (now - lastSample >= SAMPLE_MS) {
     lastSample = now;
 
-    // read raw lux
-    float rawLux = veml.readLux();
+    // read raw lux, but cycling between 2 I2C sets
+    float lux1 = readSensorLux(SDA1, SCL1);
+    float lux2 = readSensorLux(SDA2, SCL2);
+    float rawLux = (lux1 + lux2) / 2.0;
 
-    // process through selected filter
+    //calling filter module 
     float filtered;
     if (activeFilter == 0) filtered = sma.process(rawLux);
     else if (activeFilter == 1) filtered = ema.process(rawLux);
