@@ -6,6 +6,11 @@
 #define SDA2 4   // Second sensor I2C pins  
 #define SCL2 5
 
+Adafruit_VEML7700 veml1 = Adafruit_VEML7700();
+Adafruit_VEML7700 veml2 = Adafruit_VEML7700();
+TwoWire I2C_1 = TwoWire(0);  // First I2C bus
+TwoWire I2C_2 = TwoWire(1);  // Second I2C bus
+
 
 // 5 minute sliding window moving bound calibration
 // outlier removal via median+MAD
@@ -110,7 +115,7 @@ struct EMAFilter : public Filter {
   }
 };
 
-// === Savitzky-Golay Filter (true implementation) ===
+// === Savitzky-Golay Filter===
 // Computes smoothing convolution coefficients in setup using least-squares,
 // then performs convolution over a circular buffer.
 struct SGFilter : public Filter {
@@ -383,14 +388,24 @@ float readSensorLux(int sda, int scl) {
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin(SDA1, SCL1);  // Start with first sensor
-  if (!veml.begin()) {
-    Serial.println("VEML7700 not found");
+
+  // Initialize first I2C bus and sensor
+  I2C_1.begin(SDA1, SCL1);
+  if (!veml1.begin(&I2C_1)) {
+    Serial.println("VEML7700 #1 not found");
     while (1);
   }
+  veml1.setGain(VEML7700_GAIN_1);
+  veml1.setIntegrationTime(VEML7700_IT_100MS);
 
-  veml.setGain(VEML7700_GAIN_1);
-  veml.setIntegrationTime(VEML7700_IT_100MS);
+  // Initialize second I2C bus and sensor
+  I2C_2.begin(SDA2, SCL2);
+  if (!veml2.begin(&I2C_2)) {
+    Serial.println("VEML7700 #2 not found");
+    while (1);
+  }
+  veml2.setGain(VEML7700_GAIN_1);
+  veml2.setIntegrationTime(VEML7700_IT_100MS);
 
   pinMode(LED_PIN, OUTPUT);
   ledcSetup(0, 5000, 8);  // Channel 0, 5kHz, 8-bit PWM
@@ -404,10 +419,10 @@ void loop() {
   unsigned long now = millis();
   if (now - lastSample >= SAMPLE_MS) {
     lastSample = now;
-
-    // read raw lux, but cycling between 2 I2C sets
-    float lux1 = readSensorLux(SDA1, SCL1);
-    float lux2 = readSensorLux(SDA2, SCL2);
+    
+    // read raw lux from both sensors simultaneously
+    float lux1 = veml1.readLux();
+    float lux2 = veml2.readLux();
     float rawLux = (lux1 + lux2) / 2.0;
 
     //calling filter module 
