@@ -8,10 +8,10 @@ Adafruit_VEML7700 veml2 = Adafruit_VEML7700();
 TwoWire I2C_1 = TwoWire(0);
 TwoWire I2C_2 = TwoWire(1);
 
-#define SDA1 9
-#define SCL1 8
-#define SDA2 4
-#define SCL2 5
+#define SDA1 21
+#define SCL1 22
+#define SDA2 33
+#define SCL2 32
 
 void setup() {
   Serial.begin(115200);  // Still useful for debugging
